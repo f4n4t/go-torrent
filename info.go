@@ -32,11 +32,11 @@ const (
 type ParallelFileRead int
 
 const (
-	// ParallelFileReadDisabled disables parallel file reading, ensuring files are processed sequentially for better compatibility.
+	// ParallelFileReadDisabled disables parallel file reading (better for hdds).
 	ParallelFileReadDisabled ParallelFileRead = iota
-	// ParallelFileReadEnabled enables parallel reading of files for improved performance in supported environments.
+	// ParallelFileReadEnabled enables parallel reading of files (improves performance on ssds).
 	ParallelFileReadEnabled
-	// ParallelFileReadAuto automatically determines whether to enable parallel file reading based on system configuration.
+	// ParallelFileReadAuto enables it if system is linux and ssd is detected.
 	ParallelFileReadAuto
 )
 
@@ -73,38 +73,36 @@ type Service struct {
 }
 
 type ServiceBuilder struct {
-	showProgress     bool
-	createdBy        string
-	log              zerolog.Logger
-	parallelFileRead ParallelFileRead
-	hashThreads      int
+	service Service
 }
 
 // NewServiceBuilder creates a new ServiceBuilder with default values.
 func NewServiceBuilder() *ServiceBuilder {
 	return &ServiceBuilder{
-		createdBy:        "go-torrent",
-		log:              log.Logger.With().Str("module", Module).Logger(),
-		parallelFileRead: ParallelFileReadAuto,
-		hashThreads:      0,
+		Service{
+			createdBy:        "go-torrent",
+			log:              log.Logger.With().Str("module", Module).Logger(),
+			parallelFileRead: ParallelFileReadAuto,
+			hashThreads:      0,
+		},
 	}
 }
 
 // WithCreatedBy sets metadata field `created by` to the given string.
 func (s *ServiceBuilder) WithCreatedBy(createdBy string) *ServiceBuilder {
-	s.createdBy = createdBy
+	s.service.createdBy = createdBy
 	return s
 }
 
 // WithSetProgress sets the showProgress flag to enable or disable the progress bar.
 func (s *ServiceBuilder) WithSetProgress(showProgress bool) *ServiceBuilder {
-	s.showProgress = showProgress
+	s.service.showProgress = showProgress
 	return s
 }
 
 // WithHashThreads sets the number of threads to use for hashing.
 func (s *ServiceBuilder) WithHashThreads(i int) *ServiceBuilder {
-	s.hashThreads = max(0, i)
+	s.service.hashThreads = max(0, i)
 	return s
 }
 
@@ -112,11 +110,11 @@ func (s *ServiceBuilder) WithHashThreads(i int) *ServiceBuilder {
 func (s *ServiceBuilder) WithParallelFileRead(i int) *ServiceBuilder {
 	switch ParallelFileRead(i) {
 	case ParallelFileReadAuto:
-		s.parallelFileRead = ParallelFileReadAuto
+		s.service.parallelFileRead = ParallelFileReadAuto
 	case ParallelFileReadEnabled:
-		s.parallelFileRead = ParallelFileReadEnabled
+		s.service.parallelFileRead = ParallelFileReadEnabled
 	case ParallelFileReadDisabled:
-		s.parallelFileRead = ParallelFileReadDisabled
+		s.service.parallelFileRead = ParallelFileReadDisabled
 	default:
 		// should never happen when we use the constants
 		panic(fmt.Sprintf("invalid parallel file read mode: %d", i))
@@ -126,13 +124,13 @@ func (s *ServiceBuilder) WithParallelFileRead(i int) *ServiceBuilder {
 }
 
 // Build creates a new Service with the provided configuration.
-func (s *ServiceBuilder) Build() Service {
-	return Service{
-		showProgress:     s.showProgress,
-		createdBy:        s.createdBy,
-		log:              s.log,
-		parallelFileRead: s.parallelFileRead,
-		hashThreads:      s.hashThreads,
+func (s *ServiceBuilder) Build() *Service {
+	return &Service{
+		showProgress:     s.service.showProgress,
+		createdBy:        s.service.createdBy,
+		log:              s.service.log,
+		parallelFileRead: s.service.parallelFileRead,
+		hashThreads:      s.service.hashThreads,
 	}
 }
 
