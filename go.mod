@@ -13,7 +13,7 @@ require (
 	github.com/anacrolix/missinggo v1.3.0 // indirect
 	github.com/anacrolix/missinggo/v2 v2.10.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/f4n4t/go-dtree v1.0.1 // indirect
+	github.com/f4n4t/go-dtree v1.1.0 // indirect
 	github.com/f4n4t/progressbar/v3 v3.0.0-20250928071240-9a395ea544cc // indirect
 	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect

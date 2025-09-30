@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/anacrolix/torrent/bencode"
-	"github.com/f4n4t/go-release"
+	"github.com/f4n4t/go-dtree"
 	"github.com/f4n4t/go-release/pkg/progress"
 	"github.com/f4n4t/go-release/pkg/utils"
 	"github.com/rs/zerolog"
@@ -70,6 +70,7 @@ type Service struct {
 	log              zerolog.Logger
 	parallelFileRead ParallelFileRead
 	hashThreads      int
+	name             string
 }
 
 type ServiceBuilder struct {
@@ -189,13 +190,13 @@ func (fi FileInfo) BuildFullPath(root ...string) string {
 
 // FilesFromReleaseInfo extracts file information from a release.Info object and constructs a Files slice.
 // It returns an error if any issues occur while determining relative file paths.
-func FilesFromReleaseInfo(rel *release.Info) (Files, error) {
+func FilesFromNode(rootNode *dtree.Node) (Files, error) {
 	var (
 		files         Files
 		currentOffset int64
 	)
-	for _, f := range rel.Root.GetFiles() {
-		relPath, err := filepath.Rel(rel.Root.FullPath, f.FullPath)
+	for _, f := range rootNode.GetFiles() {
+		relPath, err := filepath.Rel(rootNode.FullPath, f.FullPath)
 		if err != nil {
 			return nil, fmt.Errorf("get relative path: %w", err)
 		}
@@ -278,11 +279,11 @@ func (files Files) PieceCount(pieceLength int64) int {
 }
 
 // Create creates torrent for a given release.Release and returns the content as a byte slice.
-func (s Service) Create(rel *release.Info, announce ...string) ([]byte, error) {
+func (s Service) Create(rootNode *dtree.Node, announce ...string) ([]byte, error) {
 	// Start time for duration calculation
 	startTime := time.Now()
 
-	files, err := FilesFromReleaseInfo(rel)
+	files, err := FilesFromNode(rootNode)
 	if err != nil {
 		return nil, err
 	}
@@ -291,7 +292,7 @@ func (s Service) Create(rel *release.Info, announce ...string) ([]byte, error) {
 		return nil, fmt.Errorf("no files available")
 	}
 
-	pieceLength := GetPieceLength(rel.Size)
+	pieceLength := GetPieceLength(rootNode.GetTotalSize())
 
 	s.log.Info().Str("size", utils.Bytes(files.TotalLength())).
 		Str("pieceLength", utils.Bytes(pieceLength)).
@@ -324,21 +325,21 @@ func (s Service) Create(rel *release.Info, announce ...string) ([]byte, error) {
 	private := true
 
 	info := &Info{
-		Name:        rel.Name,
+		Name:        rootNode.Info.Name,
 		Private:     &private,
 		PieceLength: pieceLength,
 		Pieces:      pieces,
 	}
 
 	switch {
-	case len(rel.Root.Children) > 0:
+	case len(rootNode.Children) > 0:
 		// multi file torrent
 		info.Files = files
 
 	default:
 		// single file torrent
-		info.Name = rel.Root.Info.Name
-		info.Length = rel.Root.Info.Size
+		info.Name = rootNode.Info.Name
+		info.Length = rootNode.Info.Size
 	}
 
 	infoBytes, err := bencode.Marshal(info)

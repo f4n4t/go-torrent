@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/anacrolix/torrent/bencode"
-	"github.com/f4n4t/go-release"
+	"github.com/f4n4t/go-dtree"
 	"github.com/f4n4t/go-torrent"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -74,11 +74,12 @@ func TestCreateMultiFile(t *testing.T) {
 	require.NoError(t, err)
 	defer cleanup()
 
-	releaseService := release.NewServiceBuilder().WithSkipPre(true).WithSkipMediaInfo(true).Build()
 	torrentService := torrent.NewServiceBuilder().WithCreatedBy("go-torrent").Build()
 
-	rel, _ := releaseService.Parse(dirName)
-	got, err := torrentService.Create(rel)
+	rootNode, err := dtree.Collect(dirName)
+	require.NoError(t, err)
+
+	got, err := torrentService.Create(rootNode)
 	assert.NoError(t, err)
 
 	expectedTorrent, err := os.ReadFile("./testdata/testDir.torrent")
@@ -102,11 +103,12 @@ func TestCreateSingleFile(t *testing.T) {
 	require.NoError(t, err)
 	defer cleanup()
 
-	releaseService := release.NewServiceBuilder().WithSkipPre(true).WithSkipMediaInfo(true).Build()
 	torrentService := torrent.NewServiceBuilder().WithCreatedBy("go-torrent").Build()
 
-	rel, _ := releaseService.Parse(filepath.Join(dirName, testFile.name))
-	got, err := torrentService.Create(rel)
+	rootNode, err := dtree.Collect(filepath.Join(dirName, testFile.name))
+	require.NoError(t, err)
+
+	got, err := torrentService.Create(rootNode)
 	assert.NoError(t, err)
 
 	expectedTorrent, err := os.ReadFile("./testdata/testFile.torrent")

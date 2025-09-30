@@ -64,6 +64,8 @@ github.com/eapache/go-xerial-snappy v0.0.0-20180814174437-776d5712da21/go.mod h1
 github.com/eapache/queue v1.1.0/go.mod h1:6eCeP0CKFpHLu8blIFXhExK/dRa7WDZfr6jVFPTqq+I=
 github.com/f4n4t/go-dtree v1.0.1 h1:Rb2pdCf6jw3cp5v9pU5/ZVo4Ot+PC2xhHWBOvP7JwWg=
 github.com/f4n4t/go-dtree v1.0.1/go.mod h1:wQzLiDsCpliqxndZrBxjNQGoDMcWFE8zmchQ7lXWxKo=
+github.com/f4n4t/go-dtree v1.1.0 h1:aTWxHwYdPyc8uIuXdYc0dxKdXRwFFol0IfFPFGqIxmo=
+github.com/f4n4t/go-dtree v1.1.0/go.mod h1:wQzLiDsCpliqxndZrBxjNQGoDMcWFE8zmchQ7lXWxKo=
 github.com/f4n4t/go-release v0.0.1 h1:2gj692g74AWo7Re6taiNcEJbWiHc0ZhiQdOcCtsbNg8=
 github.com/f4n4t/go-release v0.0.1/go.mod h1:d4spo1jx1TOVIRRWOM/G04d4Jlq1hYgAvKxgKZlqQio=
 github.com/f4n4t/progressbar/v3 v3.0.0-20250928071240-9a395ea544cc h1:rqTtpEsGzn/gFr6M3/1tTCd6fcKGUsQnN9rus92i9uM=
