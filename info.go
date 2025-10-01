@@ -70,7 +70,6 @@ type Service struct {
 	log              zerolog.Logger
 	parallelFileRead ParallelFileRead
 	hashThreads      int
-	name             string
 }
 
 type ServiceBuilder struct {
@@ -278,7 +277,7 @@ func (files Files) PieceCount(pieceLength int64) int {
 	return int((files.TotalLength() + pieceLength - int64(1)) / pieceLength)
 }
 
-// Create creates torrent for a given release.Release and returns the content as a byte slice.
+// Create creates torrent for a given node and returns the content as a byte slice.
 func (s Service) Create(rootNode *dtree.Node, announce ...string) ([]byte, error) {
 	// Start time for duration calculation
 	startTime := time.Now()
