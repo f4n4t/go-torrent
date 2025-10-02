@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 )
 
@@ -54,8 +53,6 @@ func TestPieceHasher_Concurrent(t *testing.T) {
 			numPieces: 7680,     // ~480MB total
 		},
 	}
-
-	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -324,8 +321,6 @@ func TestPieceHasher_EdgeCases(t *testing.T) {
 		},
 	}
 
-	zerolog.SetGlobalLevel(zerolog.Disabled)
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.skipOnWin && runtime.GOOS == "windows" {
@@ -358,8 +353,6 @@ func TestPieceHasher_EdgeCases(t *testing.T) {
 // - multiple small-to-medium files (12 tracks, 40MB each)
 // - small piece size (64KB) creates more concurrent operations
 func TestPieceHasher_RaceConditions(t *testing.T) {
-	zerolog.SetGlobalLevel(zerolog.Disabled)
-
 	// use the multi-file album test case from TestPieceHasher_Concurrent
 	// but run multiple hashers concurrently to stress test race conditions
 	numFiles := 12
@@ -412,8 +405,6 @@ func TestPieceHasher_RaceConditions(t *testing.T) {
 }
 
 func TestPieceHasher_ZeroWorkers(t *testing.T) {
-	zerolog.SetGlobalLevel(zerolog.Disabled)
-
 	tempDir, err := os.MkdirTemp("", "hasher_zero_workers")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
@@ -455,8 +446,6 @@ func TestPieceHasher_ZeroWorkers(t *testing.T) {
 }
 
 func TestPieceHasher_CorruptedData(t *testing.T) {
-	zerolog.SetGlobalLevel(zerolog.Disabled)
-
 	tempDir, err := os.MkdirTemp("", "hasher_corrupt_test")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
@@ -497,8 +486,6 @@ func TestPieceHasher_CorruptedData(t *testing.T) {
 // TestPieceHasher_BoundaryConditions tests scenarios where file boundaries
 // align exactly with piece boundaries.
 func TestPieceHasher_BoundaryConditions(t *testing.T) {
-	zerolog.SetGlobalLevel(zerolog.Disabled)
-
 	tempDir, err := os.MkdirTemp("", "hasher_boundary_test")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)

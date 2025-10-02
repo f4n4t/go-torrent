@@ -9,7 +9,6 @@ import (
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/f4n4t/go-dtree"
 	"github.com/f4n4t/go-torrent"
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -20,8 +19,6 @@ type file struct {
 }
 
 func createTestDir(files ...file) (string, func(), error) {
-	zerolog.SetGlobalLevel(zerolog.Disabled)
-
 	tempDir, err := os.MkdirTemp("", "go-torrent")
 	if err != nil {
 		return "", nil, err
@@ -58,8 +55,6 @@ func removeDate(input []byte) []byte {
 }
 
 func TestCreateMultiFile(t *testing.T) {
-	zerolog.SetGlobalLevel(zerolog.Disabled)
-
 	var files []file
 	files = append(files, file{
 		name:    "test1.txt",
@@ -92,8 +87,6 @@ func TestCreateMultiFile(t *testing.T) {
 }
 
 func TestCreateSingleFile(t *testing.T) {
-	zerolog.SetGlobalLevel(zerolog.Disabled)
-
 	testFile := file{
 		name:    "test1.txt",
 		content: []byte("Hello\nWorld\n"),

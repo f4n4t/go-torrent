@@ -11,9 +11,6 @@ import (
 	"os"
 	"runtime"
 	"sync"
-
-	"github.com/f4n4t/go-release/pkg/utils"
-	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -56,6 +53,7 @@ type PiecesProcessingTask struct {
 	totalPieces     int
 	piecesProcessed int
 	isFinished      bool
+	numWorkers      int
 	generatedHashes []byte
 	expectedHashes  []byte
 	error           error
@@ -125,6 +123,13 @@ func (t *PiecesProcessingTask) GetBytesHashed() int64 {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 	return t.bytesHashed
+}
+
+// GetNumWorkers returns the number of total workers.
+func (t *PiecesProcessingTask) GetNumWorkers() int {
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
+	return t.numWorkers
 }
 
 // updateResult updates the generatedHashes byte slice with the hash of the given piece.
@@ -846,14 +851,10 @@ func GeneratePiecesWithContext(ctx context.Context, files Files, pieceLength int
 		perfParams.numWorkers = 1
 	} else if perfParams.numWorkers >= 64 {
 		// limit to 8 workers on cpus with lots of cores could be a shared seedbox
-		log.Debug().Str("module", Module).
-			Msg("generating: limiting to 8 workers, use hashThreads to override")
 		perfParams.numWorkers = 8
 	}
 
-	log.Debug().Str("module", Module).Int("numWorkers", perfParams.numWorkers).
-		Str("readSize", utils.Bytes(perfParams.readSize)).
-		Bool("useParallelRead", perfParams.useParallelRead).Msg("generating params")
+	task.numWorkers = perfParams.numWorkers
 
 	if perfParams.useParallelRead {
 		processor := createProcessor(files, pieceLength, task, perfParams)
@@ -960,13 +961,10 @@ func VerifyPiecesWithContext(ctx context.Context, files Files, pieceLength int64
 		perfParams.numWorkers = 1
 	} else if perfParams.numWorkers >= 64 {
 		// limit to 8 workers on cpus with lots of cores could be a shared seedbox
-		log.Debug().Str("module", Module).
-			Msg("verifying: limiting to 8 workers, use hashThreads to override")
 		perfParams.numWorkers = 8
 	}
 
-	log.Debug().Str("module", Module).Int("numWorkers", perfParams.numWorkers).
-		Bool("useParallelRead", perfParams.useParallelRead).Msg("verifying params")
+	task.numWorkers = perfParams.numWorkers
 
 	if perfParams.useParallelRead {
 		processor := createProcessor(files, pieceLength, task, perfParams)

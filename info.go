@@ -16,12 +16,9 @@ import (
 	"github.com/f4n4t/go-dtree"
 	"github.com/f4n4t/go-release/pkg/progress"
 	"github.com/f4n4t/go-release/pkg/utils"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
 const (
-	Module = "torrent"
 	// HashSize defines the size of an SHA-1 hash in bytes, used for consistent hash representation throughout the system.
 	HashSize = sha1.Size
 	// sleepTime is the time to sleep between progress updates.
@@ -36,30 +33,21 @@ const (
 	ParallelFileReadDisabled ParallelFileRead = iota
 	// ParallelFileReadEnabled enables parallel reading of files (improves performance on ssds).
 	ParallelFileReadEnabled
-	// ParallelFileReadAuto enables it if system is linux and ssd is detected.
+	// ParallelFileReadAuto enables it if the system is linux and ssd is detected.
 	ParallelFileReadAuto
 )
 
 // shouldReadParallel determines whether files should be read using a parallel method based on the specified mode.
 func (pr ParallelFileRead) shouldReadParallel(path string) bool {
-	logger := log.Logger.With().Str("module", Module).Logger()
 	switch pr {
 	case ParallelFileReadDisabled:
-		logger.Debug().Msg("disabling parallel method for reading files")
 		return false
 	case ParallelFileReadEnabled:
-		logger.Debug().Msg("forcing parallel method for reading files")
 		return true
 	case ParallelFileReadAuto:
-		if utils.IsSSD(path) {
-			logger.Debug().Msg("detected ssd, using faster parallel method for reading files")
-			return true
-		} else {
-			logger.Debug().Msg("could not detect ssd, using traditional method for reading files")
-			return false
-		}
+		// check only works on linux
+		return utils.IsSSD(path)
 	default:
-		logger.Debug().Msg("defaulting to traditional method for reading files")
 		return false
 	}
 }
@@ -67,10 +55,8 @@ func (pr ParallelFileRead) shouldReadParallel(path string) bool {
 type Service struct {
 	showProgress     bool
 	createdBy        string
-	log              zerolog.Logger
 	parallelFileRead ParallelFileRead
 	hashThreads      int
-	name             string
 }
 
 type ServiceBuilder struct {
@@ -82,7 +68,6 @@ func NewServiceBuilder() *ServiceBuilder {
 	return &ServiceBuilder{
 		Service{
 			createdBy:        "go-torrent",
-			log:              log.Logger.With().Str("module", Module).Logger(),
 			parallelFileRead: ParallelFileReadAuto,
 			hashThreads:      0,
 		},
@@ -129,7 +114,6 @@ func (s *ServiceBuilder) Build() *Service {
 	return &Service{
 		showProgress:     s.service.showProgress,
 		createdBy:        s.service.createdBy,
-		log:              s.service.log,
 		parallelFileRead: s.service.parallelFileRead,
 		hashThreads:      s.service.hashThreads,
 	}
@@ -188,7 +172,7 @@ func (fi FileInfo) BuildFullPath(root ...string) string {
 	return filepath.Join(append(root, fi.Path...)...)
 }
 
-// FilesFromReleaseInfo extracts file information from a release.Info object and constructs a Files slice.
+// FilesFromNode extracts file information from a release.Info object and constructs a Files slice.
 // It returns an error if any issues occur while determining relative file paths.
 func FilesFromNode(rootNode *dtree.Node) (Files, error) {
 	var (
@@ -278,11 +262,8 @@ func (files Files) PieceCount(pieceLength int64) int {
 	return int((files.TotalLength() + pieceLength - int64(1)) / pieceLength)
 }
 
-// Create creates torrent for a given release.Release and returns the content as a byte slice.
+// Create creates a torrent for a given node and returns the content as a byte slice.
 func (s Service) Create(rootNode *dtree.Node, announce ...string) ([]byte, error) {
-	// Start time for duration calculation
-	startTime := time.Now()
-
 	files, err := FilesFromNode(rootNode)
 	if err != nil {
 		return nil, err
@@ -293,10 +274,6 @@ func (s Service) Create(rootNode *dtree.Node, announce ...string) ([]byte, error
 	}
 
 	pieceLength := GetPieceLength(rootNode.GetTotalSize())
-
-	s.log.Info().Str("size", utils.Bytes(files.TotalLength())).
-		Str("pieceLength", utils.Bytes(pieceLength)).
-		Int("totalPieces", files.PieceCount(pieceLength)).Msg("generating pieces")
 
 	piecesTask, err := GeneratePieces(files, pieceLength, s.parallelFileRead, s.hashThreads)
 	if err != nil {
@@ -363,8 +340,6 @@ func (s Service) Create(rootNode *dtree.Node, announce ...string) ([]byte, error
 		return nil, fmt.Errorf("error bencoding torrent info: %w", err)
 	}
 
-	s.log.Info().Str("dur", time.Since(startTime).String()).Msg("torrent created")
-
 	return b.Bytes(), nil
 }
 
@@ -375,11 +350,8 @@ func (s Service) Verify(tFile *File, sourcePath string) error {
 		return err
 	}
 
-	var (
-		torrentFiles  = tFile.Info.UpvertedFiles()
-		filteredFiles = make(Files, len(torrentFiles))
-		startTime     = time.Now()
-	)
+	torrentFiles := tFile.Info.UpvertedFiles()
+	filteredFiles := make(Files, len(torrentFiles))
 
 	for i, f := range torrentFiles {
 		if f.Path == nil {
@@ -407,11 +379,6 @@ func (s Service) Verify(tFile *File, sourcePath string) error {
 		currentOffset += f.Length
 	}
 
-	s.log.Info().
-		Int("fileCount", len(torrentFiles)).
-		Str("size", utils.Bytes(filteredFiles.TotalLength())).
-		Int("pieces", len(tFile.Info.Pieces)/HashSize).Msg("verifying pieces...")
-
 	piecesTask, err := VerifyPieces(filteredFiles, tFile.Info.PieceLength, tFile.Info.Pieces,
 		s.parallelFileRead, s.hashThreads)
 	if err != nil {
@@ -431,10 +398,6 @@ func (s Service) Verify(tFile *File, sourcePath string) error {
 	}
 
 	_ = bar.Finish()
-
-	log.Info().
-		Str("dur", time.Since(startTime).String()).
-		Msg("verification completed")
 
 	return nil
 }
