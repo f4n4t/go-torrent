@@ -101,8 +101,8 @@ func (s *ServiceBuilder) WithContext(ctx context.Context) *ServiceBuilder {
 }
 
 // WithParallelFileRead sets the parallelFileRead flag to enable or disable parallel file read mode.
-func (s *ServiceBuilder) WithParallelFileRead(i int) *ServiceBuilder {
-	switch ParallelFileRead(i) {
+func (s *ServiceBuilder) WithParallelFileRead(p ParallelFileRead) *ServiceBuilder {
+	switch p {
 	case ParallelFileReadAuto:
 		s.service.parallelFileRead = ParallelFileReadAuto
 	case ParallelFileReadEnabled:
@@ -111,7 +111,7 @@ func (s *ServiceBuilder) WithParallelFileRead(i int) *ServiceBuilder {
 		s.service.parallelFileRead = ParallelFileReadDisabled
 	default:
 		// should never happen when we use the constants
-		panic(fmt.Sprintf("invalid parallel file read mode: %d", i))
+		panic(fmt.Sprintf("invalid parallel file read mode: %d", p))
 	}
 
 	return s

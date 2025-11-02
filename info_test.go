@@ -2,6 +2,7 @@ package torrent_test
 
 import (
 	"bytes"
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -54,63 +55,114 @@ func removeDate(input []byte) []byte {
 	return input
 }
 
-func TestCreateMultiFile(t *testing.T) {
-	var files []file
-	files = append(files, file{
-		name:    "test1.txt",
-		content: []byte("Hello\nWorld\n"),
+func Test_InfoCreate(t *testing.T) {
+	t.Run("SingleFile", func(t *testing.T) {
+		testFile := file{
+			name:    "test1.txt",
+			content: []byte("Hello\nWorld\n"),
+		}
+
+		dirName, cleanup, err := createTestDir(testFile)
+		require.NoError(t, err)
+		defer cleanup()
+
+		torrentService := torrent.NewServiceBuilder().WithCreatedBy("go-torrent").Build()
+
+		rootNode, err := dtree.Collect(filepath.Join(dirName, testFile.name))
+		require.NoError(t, err)
+
+		got, err := torrentService.Create(rootNode)
+		assert.NoError(t, err)
+
+		expectedTorrent, err := os.ReadFile("./testdata/testFile.torrent")
+		assert.NoError(t, err)
+
+		got = removeDate(got)
+		expectedTorrent = removeDate(expectedTorrent)
+
+		assert.Equal(t, got, expectedTorrent)
+
 	})
-	files = append(files, file{
-		name:    "test2.txt",
-		content: []byte("This\nIs\nMe!\n"),
+
+	t.Run("MultiFile", func(t *testing.T) {
+		var files []file
+		files = append(files, file{
+			name:    "test1.txt",
+			content: []byte("Hello\nWorld\n"),
+		})
+		files = append(files, file{
+			name:    "test2.txt",
+			content: []byte("This\nIs\nMe!\n"),
+		})
+
+		dirName, cleanup, err := createTestDir(files...)
+		require.NoError(t, err)
+		defer cleanup()
+
+		torrentService := torrent.NewServiceBuilder().WithCreatedBy("go-torrent").Build()
+
+		rootNode, err := dtree.Collect(dirName)
+		require.NoError(t, err)
+
+		got, err := torrentService.Create(rootNode)
+		assert.NoError(t, err)
+
+		expectedTorrent, err := os.ReadFile("./testdata/testDir.torrent")
+		assert.NoError(t, err)
+
+		got = removeDate(got)
+		expectedTorrent = removeDate(expectedTorrent)
+
+		assert.Equal(t, got, expectedTorrent)
 	})
 
-	dirName, cleanup, err := createTestDir(files...)
-	require.NoError(t, err)
-	defer cleanup()
+	t.Run("CheckCancellationWithParallelRead", func(t *testing.T) {
+		testFile := file{
+			name:    "test1.txt",
+			content: []byte("Hello\nWorld\n"),
+		}
 
-	torrentService := torrent.NewServiceBuilder().WithCreatedBy("go-torrent").Build()
+		dirName, cleanup, err := createTestDir(testFile)
+		require.NoError(t, err)
+		defer cleanup()
 
-	rootNode, err := dtree.Collect(dirName)
-	require.NoError(t, err)
+		ctx, cancel := context.WithCancel(context.Background())
 
-	got, err := torrentService.Create(rootNode)
-	assert.NoError(t, err)
+		torrentService := torrent.NewServiceBuilder().
+			WithParallelFileRead(torrent.ParallelFileReadEnabled).WithCreatedBy("go-torrent").WithContext(ctx).Build()
 
-	expectedTorrent, err := os.ReadFile("./testdata/testDir.torrent")
-	assert.NoError(t, err)
+		rootNode, err := dtree.Collect(filepath.Join(dirName, testFile.name))
+		require.NoError(t, err)
 
-	got = removeDate(got)
-	expectedTorrent = removeDate(expectedTorrent)
+		cancel()
 
-	assert.Equal(t, got, expectedTorrent)
-}
+		_, err = torrentService.Create(rootNode)
+		assert.ErrorIs(t, err, context.Canceled)
+	})
 
-func TestCreateSingleFile(t *testing.T) {
-	testFile := file{
-		name:    "test1.txt",
-		content: []byte("Hello\nWorld\n"),
-	}
+	t.Run("CheckCancellationWithoutParallelRead", func(t *testing.T) {
+		testFile := file{
+			name:    "test1.txt",
+			content: []byte("Hello\nWorld\n"),
+		}
 
-	dirName, cleanup, err := createTestDir(testFile)
-	require.NoError(t, err)
-	defer cleanup()
+		dirName, cleanup, err := createTestDir(testFile)
+		require.NoError(t, err)
+		defer cleanup()
 
-	torrentService := torrent.NewServiceBuilder().WithCreatedBy("go-torrent").Build()
+		ctx, cancel := context.WithCancel(context.Background())
 
-	rootNode, err := dtree.Collect(filepath.Join(dirName, testFile.name))
-	require.NoError(t, err)
+		torrentService := torrent.NewServiceBuilder().
+			WithParallelFileRead(torrent.ParallelFileReadEnabled).WithCreatedBy("go-torrent").WithContext(ctx).Build()
 
-	got, err := torrentService.Create(rootNode)
-	assert.NoError(t, err)
+		rootNode, err := dtree.Collect(filepath.Join(dirName, testFile.name))
+		require.NoError(t, err)
 
-	expectedTorrent, err := os.ReadFile("./testdata/testFile.torrent")
-	assert.NoError(t, err)
+		cancel()
 
-	got = removeDate(got)
-	expectedTorrent = removeDate(expectedTorrent)
-
-	assert.Equal(t, got, expectedTorrent)
+		_, err = torrentService.Create(rootNode)
+		assert.ErrorIs(t, err, context.Canceled)
+	})
 }
 
 func TestMarshalInfo(t *testing.T) {
