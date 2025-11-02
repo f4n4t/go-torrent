@@ -267,6 +267,7 @@ func (wp *workerPool) collectResults() {
 
 		case <-wp.piecesTask.ctx.Done():
 			// operation has been canceled
+			wp.piecesTask.setError(wp.piecesTask.ctx.Err())
 			return
 		}
 	}
@@ -295,6 +296,7 @@ func (wp *workerPool) collectVerifyResults() {
 
 		case <-wp.piecesTask.ctx.Done():
 			// operation has been canceled
+			wp.piecesTask.setError(wp.piecesTask.ctx.Err())
 			return
 		}
 	}
