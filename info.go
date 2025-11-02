@@ -3,6 +3,7 @@ package torrent
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha1"
 	"fmt"
 	"io"
@@ -57,6 +58,7 @@ type Service struct {
 	createdBy        string
 	parallelFileRead ParallelFileRead
 	hashThreads      int
+	ctx              context.Context
 }
 
 type ServiceBuilder struct {
@@ -92,6 +94,12 @@ func (s *ServiceBuilder) WithHashThreads(i int) *ServiceBuilder {
 	return s
 }
 
+// WithContext sets the context for the service.
+func (s *ServiceBuilder) WithContext(ctx context.Context) *ServiceBuilder {
+	s.service.ctx = ctx
+	return s
+}
+
 // WithParallelFileRead sets the parallelFileRead flag to enable or disable parallel file read mode.
 func (s *ServiceBuilder) WithParallelFileRead(i int) *ServiceBuilder {
 	switch ParallelFileRead(i) {
@@ -111,11 +119,16 @@ func (s *ServiceBuilder) WithParallelFileRead(i int) *ServiceBuilder {
 
 // Build creates a new Service with the provided configuration.
 func (s *ServiceBuilder) Build() *Service {
+	if s.service.ctx == nil {
+		s.service.ctx = context.Background()
+	}
+
 	return &Service{
 		showProgress:     s.service.showProgress,
 		createdBy:        s.service.createdBy,
 		parallelFileRead: s.service.parallelFileRead,
 		hashThreads:      s.service.hashThreads,
+		ctx:              s.service.ctx,
 	}
 }
 
@@ -275,7 +288,7 @@ func (s Service) Create(rootNode *dtree.Node, announce ...string) ([]byte, error
 
 	pieceLength := GetPieceLength(rootNode.GetTotalSize())
 
-	piecesTask, err := GeneratePieces(files, pieceLength, s.parallelFileRead, s.hashThreads)
+	piecesTask, err := GeneratePiecesWithContext(s.ctx, files, pieceLength, s.parallelFileRead, s.hashThreads)
 	if err != nil {
 		return nil, fmt.Errorf("generate pieces: %w", err)
 	}
@@ -379,7 +392,7 @@ func (s Service) Verify(tFile *File, sourcePath string) error {
 		currentOffset += f.Length
 	}
 
-	piecesTask, err := VerifyPieces(filteredFiles, tFile.Info.PieceLength, tFile.Info.Pieces,
+	piecesTask, err := VerifyPiecesWithContext(s.ctx, filteredFiles, tFile.Info.PieceLength, tFile.Info.Pieces,
 		s.parallelFileRead, s.hashThreads)
 	if err != nil {
 		return fmt.Errorf("verify pieces: %w", err)
