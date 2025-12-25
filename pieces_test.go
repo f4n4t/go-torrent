@@ -127,7 +127,7 @@ func createTestFilesFast(t *testing.T, numFiles int, fileSize, pieceLen int64) (
 	for i := range numFiles {
 		path := filepath.Join(tempDir, fmt.Sprintf("test_file_%d", i))
 
-		f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0644)
+		f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0o644)
 		if err != nil {
 			t.Fatalf("failed to create file: %v", err)
 		}
@@ -207,7 +207,7 @@ func createTestFilesWithPattern(t *testing.T, tempDir string, fileSizes []int64,
 
 	for i, fileSize := range fileSizes {
 		path := filepath.Join(tempDir, fmt.Sprintf("boundary_test_file_%d", i))
-		f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0644)
+		f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0o644)
 		if err != nil {
 			t.Fatalf("failed to create file %s: %v", path, err)
 		}
@@ -269,7 +269,6 @@ func TestPieceHasher_EdgeCases(t *testing.T) {
 		pieceLen  int64
 		numPieces int
 		wantErr   bool
-		skipOnWin bool
 	}{
 		{
 			name: "non-existent file",
@@ -288,7 +287,7 @@ func TestPieceHasher_EdgeCases(t *testing.T) {
 			name: "empty file",
 			setup: func() []FileInfo {
 				path := filepath.Join(tempDir, "empty")
-				if err := os.WriteFile(path, []byte{}, 0644); err != nil {
+				if err := os.WriteFile(path, []byte{}, 0o644); err != nil {
 					t.Fatalf("failed to create empty file: %v", err)
 				}
 				return []FileInfo{{
@@ -305,7 +304,7 @@ func TestPieceHasher_EdgeCases(t *testing.T) {
 			name: "unreadable file",
 			setup: func() []FileInfo {
 				path := filepath.Join(tempDir, "unreadable")
-				if err := os.WriteFile(path, []byte("test"), 0000); err != nil {
+				if err := os.WriteFile(path, []byte("test"), 0o000); err != nil {
 					t.Fatalf("failed to create unreadable file: %v", err)
 				}
 				return []FileInfo{{
@@ -317,14 +316,16 @@ func TestPieceHasher_EdgeCases(t *testing.T) {
 			pieceLen:  64,
 			numPieces: 1,
 			wantErr:   true,
-			skipOnWin: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.skipOnWin && runtime.GOOS == "windows" {
+			if runtime.GOOS == "windows" && tt.name == "unreadable file" {
 				t.Skip("skipping unreadable file test on Windows")
+			}
+			if os.Geteuid() == 0 && tt.name == "unreadable file" {
+				t.Skip("skipping unreadable file test when running as root")
 			}
 			files := tt.setup()
 
@@ -461,7 +462,7 @@ func TestPieceHasher_CorruptedData(t *testing.T) {
 		t.Fatalf("failed to read file: %v", err)
 	}
 	data[0] ^= 0xFF // flip bits of the first byte
-	if err := os.WriteFile(corruptedPath, data, 0644); err != nil {
+	if err := os.WriteFile(corruptedPath, data, 0o644); err != nil {
 		t.Fatalf("failed to write corrupted file: %v", err)
 	}
 
