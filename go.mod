@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/anacrolix/torrent v1.59.1
 	github.com/f4n4t/go-dtree v1.1.0
-	github.com/f4n4t/go-release v0.0.1
+	github.com/f4n4t/go-release v0.8.0
 	github.com/stretchr/testify v1.11.1
 )
 
@@ -19,6 +19,7 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/remko/go-mkvparse v0.14.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rs/zerolog v1.34.0 // indirect
 	github.com/vimeo/go-util v1.4.1 // indirect
