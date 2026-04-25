@@ -101,8 +101,8 @@ func (s *ServiceBuilder) WithContext(ctx context.Context) *ServiceBuilder {
 }
 
 // WithParallelFileRead sets the parallelFileRead flag to enable or disable parallel file read mode.
-func (s *ServiceBuilder) WithParallelFileRead(p ParallelFileRead) *ServiceBuilder {
-	switch p {
+func (s *ServiceBuilder) WithParallelFileRead(i int) *ServiceBuilder {
+	switch ParallelFileRead(i) {
 	case ParallelFileReadAuto:
 		s.service.parallelFileRead = ParallelFileReadAuto
 	case ParallelFileReadEnabled:
@@ -111,7 +111,7 @@ func (s *ServiceBuilder) WithParallelFileRead(p ParallelFileRead) *ServiceBuilde
 		s.service.parallelFileRead = ParallelFileReadDisabled
 	default:
 		// should never happen when we use the constants
-		panic(fmt.Sprintf("invalid parallel file read mode: %d", p))
+		panic(fmt.Sprintf("invalid parallel file read mode: %d", i))
 	}
 
 	return s
@@ -214,16 +214,9 @@ func FilesFromNode(rootNode *dtree.Node) (Files, error) {
 }
 
 // FilesFromPath retrieves all files from the specified root directory recursively and returns them as a Files object.
-// It skips directories and calculates the absolute path for each file, handling errors during the process.
+// It skips directories and gets the relative path for each file, handling errors during the process.
 // An error is returned if the root directory cannot be accessed or traversed.
 func FilesFromPath(root string) (Files, error) {
-	// check if the root has another subdirectory
-	subFolder := filepath.Join(root, filepath.Base(root))
-
-	if fileInfo, err := os.Stat(subFolder); err == nil && fileInfo.IsDir() {
-		root = subFolder
-	}
-
 	absRoot, err := filepath.Abs(root)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get absolute path: %w", err)

@@ -29,7 +29,7 @@ func createTestDir(files ...file) (string, func(), error) {
 	}
 
 	testDir := filepath.Join(tempDir, "testDir")
-	if err := os.Mkdir(testDir, 0755); err != nil {
+	if err := os.Mkdir(testDir, 0o755); err != nil {
 		return "", cleanup, err
 	}
 
@@ -81,7 +81,6 @@ func Test_InfoCreate(t *testing.T) {
 		expectedTorrent = removeDate(expectedTorrent)
 
 		assert.Equal(t, got, expectedTorrent)
-
 	})
 
 	t.Run("MultiFile", func(t *testing.T) {
@@ -129,7 +128,7 @@ func Test_InfoCreate(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 
 		torrentService := torrent.NewServiceBuilder().
-			WithParallelFileRead(torrent.ParallelFileReadEnabled).WithCreatedBy("go-torrent").WithContext(ctx).Build()
+			WithParallelFileRead(int(torrent.ParallelFileReadEnabled)).WithCreatedBy("go-torrent").WithContext(ctx).Build()
 
 		rootNode, err := dtree.Collect(filepath.Join(dirName, testFile.name))
 		require.NoError(t, err)
@@ -153,7 +152,7 @@ func Test_InfoCreate(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 
 		torrentService := torrent.NewServiceBuilder().
-			WithParallelFileRead(torrent.ParallelFileReadEnabled).WithCreatedBy("go-torrent").WithContext(ctx).Build()
+			WithParallelFileRead(int(torrent.ParallelFileReadEnabled)).WithCreatedBy("go-torrent").WithContext(ctx).Build()
 
 		rootNode, err := dtree.Collect(filepath.Join(dirName, testFile.name))
 		require.NoError(t, err)
